@@ -10,7 +10,11 @@ import lejos.hardware.ev3.EV3;
 import lejos.hardware.lcd.TextLCD;
 import lejos.hardware.motor.EV3LargeRegulatedMotor;
 import lejos.hardware.port.MotorPort;
+import lejos.hardware.port.SensorPort;
+import lejos.hardware.sensor.EV3ColorSensor;
+import lejos.hardware.sensor.EV3UltrasonicSensor;
 import lejos.robotics.RegulatedMotor;
+import lejos.robotics.SampleProvider;
 
 /**
  * Based on EV3ClientTest.
@@ -25,8 +29,14 @@ public class EV3DroidCVClient {
     private final Keys keys = ev3.getKeys();
     private final RegulatedMotor leftMotor = new EV3LargeRegulatedMotor(MotorPort.A); //motor kiri
     private final RegulatedMotor rightMotor = new EV3LargeRegulatedMotor(MotorPort.B); // motor kanan
-    private final RegulatedMotor upMotor = new EV3LargeRegulatedMotor(MotorPort.C); //Motor penggerak japitan
-    private final RegulatedMotor servoMotor = new EV3LargeRegulatedMotor(MotorPort.D); //motor penjapit
+   // private final RegulatedMotor upMotor = new EV3LargeRegulatedMotor(MotorPort.C); //Motor penggerak japitan
+    //private final RegulatedMotor servoMotor = new EV3LargeRegulatedMotor(MotorPort.D); //motor penjapit
+    
+    static EV3UltrasonicSensor sensorUltra = new EV3UltrasonicSensor(SensorPort.S4);
+	static EV3ColorSensor sensorColor = new EV3ColorSensor(SensorPort.S1);
+	static final SampleProvider ultra = sensorUltra.getDistanceMode(); 
+	static final SampleProvider color = sensorColor.getColorIDMode();
+    
     String btIPPrefix = "10.0.1.";
     String wifiIPPrefix = "192.168.0.";
     boolean isBluetooth = true;
@@ -54,8 +64,10 @@ public class EV3DroidCVClient {
     }
         
     void init () {
-        drawRow("IP:", IP_ROW-1);
+    	drawRow("IP:", IP_ROW-1);
+        //System.out.println(IP_ROW-1);
         drawRow("Status:", STATUS_ROW-1);
+        //System.out.println(STATUS_ROW-1);
         for(;;) {
             drawRow("Setting IP", STATUS_ROW);
             setMode(isBluetooth);
@@ -89,6 +101,7 @@ public class EV3DroidCVClient {
             socket = new Socket(getIP(), 1234);
             in = new DataInputStream(socket.getInputStream());
             drawRow("Connected", STATUS_ROW);
+            drawRow("hasil bacanya: " + String.format("%6.2f", in), STATUS_ROW+2);
             return true;
         } catch (IOException e) {
             drawRow("E:" + e.getMessage(), STATUS_ROW);
@@ -112,6 +125,8 @@ public class EV3DroidCVClient {
     
     void run() throws IOException {
         leftMotor.synchronizeWith(new RegulatedMotor[]{rightMotor});
+        
+        goToFirstPosition();
         boolean finish = false;
         while (!finish) {
             double x = in.readDouble();            
@@ -136,6 +151,33 @@ public class EV3DroidCVClient {
                 finish = true;
             }
         }
+    }
+    
+    void goToFirstPosition()
+    {
+    	leftMotor.startSynchronization();
+    	while(readSensorColor()!=6) {
+    		leftMotor.setSpeed(BASE_SPEED);
+    		leftMotor.forward();
+    		rightMotor.setSpeed(BASE_SPEED);
+    		rightMotor.forward();
+    		if(readSensorColor()==6) {
+    			leftMotor.stop(); 
+                rightMotor.stop(); 
+    		}
+    	}
+    }
+    
+    private static float readSensorUltra() {
+        final float[] sample = new float[ultra.sampleSize()];
+        ultra.fetchSample(sample, 0);
+        return sample[0];
+    }
+    
+    private static float readSensorColor() {
+        final float[] sample = new float[color.sampleSize()];
+        color.fetchSample(sample, 0);
+        return sample[0];
     }
     
     /**
