@@ -29,8 +29,8 @@ public class EV3DroidCVClient {
     private final Keys keys = ev3.getKeys();
     private final RegulatedMotor leftMotor = new EV3LargeRegulatedMotor(MotorPort.A); //motor kiri
     private final RegulatedMotor rightMotor = new EV3LargeRegulatedMotor(MotorPort.B); // motor kanan
-   // private final RegulatedMotor upMotor = new EV3LargeRegulatedMotor(MotorPort.C); //Motor penggerak japitan
-    //private final RegulatedMotor servoMotor = new EV3LargeRegulatedMotor(MotorPort.D); //motor penjapit
+    private final RegulatedMotor lenganMotor = new EV3LargeRegulatedMotor(MotorPort.C); //Motor penggerak japitan
+    private final RegulatedMotor servoMotor = new EV3LargeRegulatedMotor(MotorPort.D); //motor penjapit
     
     static EV3UltrasonicSensor sensorUltra = new EV3UltrasonicSensor(SensorPort.S4);
 	static EV3ColorSensor sensorColor = new EV3ColorSensor(SensorPort.S1);
@@ -124,6 +124,41 @@ public class EV3DroidCVClient {
         return false;
     }
     
+    void bukaCapit() {
+    	servoMotor.setSpeed(1000);
+    	servoMotor.rotate(1080);
+    	servoMotor.stop();
+    }
+    
+    void tutupCapit() {
+    	servoMotor.setSpeed(1000);
+    	servoMotor.rotate(-1080);
+    	servoMotor.stop();
+    }
+    
+    void lenganDepan() {
+    	lenganMotor.setSpeed(500);
+    	lenganMotor.rotate(180);
+    	lenganMotor.stop();
+    }
+    
+    void lenganBelakang() {
+    	lenganMotor.setSpeed(500);
+    	lenganMotor.rotate(-180);
+    	lenganMotor.stop();
+    }
+    
+    void ambilBarang() {
+    	bukaCapit();
+    	tutupCapit();
+    	lenganDepan();
+    	bukaCapit();
+    	tutupCapit();
+    	lenganBelakang();
+    	bukaCapit();
+    	tutupCapit();
+    }
+    
     void run() throws IOException {
         leftMotor.synchronizeWith(new RegulatedMotor[]{rightMotor});
         
@@ -153,6 +188,8 @@ public class EV3DroidCVClient {
                 disconnect();
                 finish = true;
             }
+            
+            ambilBarang();
             
             leaveWarehouse();//keluar gudang membawa barang
         }
