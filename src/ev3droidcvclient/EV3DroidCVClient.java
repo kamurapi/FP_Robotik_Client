@@ -36,6 +36,7 @@ public class EV3DroidCVClient {
 	static EV3ColorSensor sensorColor = new EV3ColorSensor(SensorPort.S1);
 	static final SampleProvider ultra = sensorUltra.getDistanceMode(); 
 	static final SampleProvider color = sensorColor.getColorIDMode();
+	static double sensorUltraThreshold;
     
     String btIPPrefix = "10.0.1.";
     String wifiIPPrefix = "192.168.0.";
@@ -126,7 +127,9 @@ public class EV3DroidCVClient {
     void run() throws IOException {
         leftMotor.synchronizeWith(new RegulatedMotor[]{rightMotor});
         
-        goToFirstPosition();
+        goToFirstPosition();  //awalan mencari posisi pertama / masuk gudang
+        
+        
         boolean finish = false;
         while (!finish) {
             double x = in.readDouble();            
@@ -150,6 +153,8 @@ public class EV3DroidCVClient {
                 disconnect();
                 finish = true;
             }
+            
+            leaveWarehouse();//keluar gudang membawa barang
         }
     }
     
@@ -167,6 +172,29 @@ public class EV3DroidCVClient {
     		}
     	}
     }
+    
+    
+    void leaveWarehouse()
+    {
+    	sensorUltraThreshold = 1;
+    	while(readSensorUltra() < sensorUltraThreshold) // muter sampe nemu jalan keluar
+    	{
+    		leftMotor.rotate(30,true);
+    		rightMotor.rotate(-30);
+    	}
+    	while(readSensorColor()!=1) {  //jalan sampe nemu garis hitam
+    		leftMotor.setSpeed(BASE_SPEED);
+    		leftMotor.forward();
+    		rightMotor.setSpeed(BASE_SPEED);
+    		rightMotor.forward();
+    		if(readSensorColor()==1) {
+    			leftMotor.stop(); 
+                rightMotor.stop(); 
+    		}
+    	}
+    }
+    
+    
     
     private static float readSensorUltra() {
         final float[] sample = new float[ultra.sampleSize()];
